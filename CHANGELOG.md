@@ -1,5 +1,18 @@
 # mppx
 
+## 0.9.0
+
+### Minor Changes
+
+- bdaea3a: Standardized client transports on `getChallenges` and removed the singular `getChallenge` hook.
+
+### Patch Changes
+
+- 1272520: Disabled the `no-underscore-dangle` lint rule.
+- 5ff5cb7: Fixed equality checks between equivalent hex and Tempo-formatted addresses.
+- 641aa4d: Kept discovery metadata aligned with runtime challenges by preserving composed offers, dispatching nested compositions, and deriving prices from canonical payment requests.
+- 3d7ed4b: Removed obsolete compatibility shims for legacy viem Tempo call builders.
+
 ## 0.8.15
 
 ### Patch Changes
