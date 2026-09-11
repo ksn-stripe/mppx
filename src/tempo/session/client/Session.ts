@@ -124,6 +124,7 @@ export function session(parameters: session.Parameters = {}) {
     channelStore,
     decimals = defaults.decimals,
     escrow: escrowOverride,
+    allowedChainIds,
     getClient: getClientParameter,
     maxDeposit: maxDepositParameter,
     topUpAmount: topUpAmountParameter,
@@ -188,6 +189,7 @@ export function session(parameters: session.Parameters = {}) {
         allowCustomEscrow,
         challenge,
         escrowOverride,
+        allowedChainIds,
         getClient,
       })
       const attempt = MethodResponse.getAttempt(parameters)
@@ -328,6 +330,7 @@ export function session(parameters: session.Parameters = {}) {
       allowCustomEscrow,
       challenge,
       escrowOverride,
+      allowedChainIds,
       getClient,
     })
     const channel = await store.get(resolved.key)
@@ -375,6 +378,7 @@ export function session(parameters: session.Parameters = {}) {
           allowCustomEscrow,
           challenge,
           escrowOverride,
+          allowedChainIds,
           getClient,
         })
       ).key
@@ -426,6 +430,12 @@ export declare namespace session {
       decimals?: number | undefined
       /** Exact TIP20EscrowChannel address pin. Takes precedence over `allowCustomEscrow`. */
       escrow?: Address | undefined
+      /**
+       * Chains permitted for session credentials. Omitted allows any chain; empty rejects all.
+       * A single entry supplies the chain when omitted by the challenge. Otherwise the
+       * challenge or resolved client must select an allowed chain.
+       */
+      allowedChainIds?: readonly number[] | undefined
       /** Maximum channel deposit in human-readable units. Caps server-suggested opens and automatic top-ups. */
       maxDeposit?: string | undefined
       /**

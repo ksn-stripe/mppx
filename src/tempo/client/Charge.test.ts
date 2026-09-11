@@ -84,7 +84,7 @@ describe('tempo.charge client', () => {
     const chainId = 42431
     const client = createClient({
       account,
-      chain: tempoLocalnet,
+      chain: { ...tempoLocalnet, id: 42431 },
       transport: http('http://127.0.0.1'),
     })
     const method = charge({
@@ -137,7 +137,7 @@ describe('tempo.charge client', () => {
       const { charge: chargeWithMockedTempo } = await import('./Charge.js')
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedTempo({
@@ -190,7 +190,7 @@ describe('tempo.charge client', () => {
       const { charge: chargeWithMockedActions } = await import('./Charge.js')
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedActions({
@@ -242,12 +242,12 @@ describe('tempo.charge client', () => {
       const { charge: chargeWithMockedActions } = await import('./Charge.js')
       const localClient = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const rpcClient = createClient({
         account: account.address,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const challenge = createChallenge({
@@ -301,7 +301,7 @@ describe('tempo.charge client', () => {
       const { charge: chargeWithMockedActions } = await import('./Charge.js')
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedActions({
@@ -363,7 +363,7 @@ describe('tempo.charge client', () => {
       const { charge: chargeWithMockedActions } = await import('./Charge.js')
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedActions({
@@ -415,7 +415,7 @@ describe('tempo.charge client', () => {
       const { charge: chargeWithMockedActions } = await import('./Charge.js')
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedActions({
@@ -488,7 +488,7 @@ describe('tempo.charge client', () => {
 
       const client = createClient({
         account: accessKey,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const resolveAccount = vi.fn()
@@ -532,7 +532,7 @@ describe('tempo.charge client', () => {
       const chainId = 42431
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedActions({
@@ -581,7 +581,7 @@ describe('tempo.charge client', () => {
       const chainId = 42431
       const client = createClient({
         account,
-        chain: tempoLocalnet,
+        chain: { ...tempoLocalnet, id: 42431 },
         transport: http('http://127.0.0.1'),
       })
       const method = chargeWithMockedActions({
@@ -624,9 +624,16 @@ describe('tempo.charge client', () => {
   })
 
   describe('chain pinning', () => {
+    test('rejects a resolved client whose chain conflicts with the pin', async () => {
+      const method = charge({ account, expectedChainId: 4217, getClient: () => client })
+      await expect(
+        method.createCredential({ challenge: createChallenge(), context: {} }),
+      ).rejects.toThrow('Chain ID mismatch: expected 4217, got 42431.')
+    })
+
     const client = createClient({
       account,
-      chain: tempoLocalnet,
+      chain: { ...tempoLocalnet, id: 42431 },
       transport: http('http://127.0.0.1'),
     })
 
@@ -690,23 +697,64 @@ describe('tempo.charge client', () => {
       expect(credential.source).toBe(`did:pkh:eip155:${chainId}:${account.address}`)
     })
 
-    test('unpinned client accepts any challenge chainId', async () => {
-      const chainId = 1
-      const method = charge({
-        account,
-        getClient: () => client,
-      })
-
-      const credential = Credential.deserialize(
-        await method.createCredential({
-          challenge: createChallenge({ chainId }),
-          context: {},
-        }),
-      )
-
-      expect(credential.source).toBe(`did:pkh:eip155:${chainId}:${account.address}`)
+    test('unpinned client rejects a resolved client on another chain', async () => {
+      const method = charge({ account, getClient: () => client })
+      await expect(
+        method.createCredential({ challenge: createChallenge({ chainId: 1 }), context: {} }),
+      ).rejects.toThrow('Chain ID mismatch: expected 1, got 42431.')
     })
   })
+})
+
+describe('charge chain allowlists', () => {
+  test.each([
+    { allowed: [4217, 42431], advertised: 4217, resolved: 4217, pin: undefined, accepted: true },
+    { allowed: [4217, 42431], advertised: 42431, resolved: 42431, pin: undefined, accepted: true },
+    {
+      allowed: [4217, 42431],
+      advertised: undefined,
+      resolved: 42431,
+      pin: undefined,
+      accepted: true,
+    },
+    { allowed: [42431], advertised: undefined, resolved: 42431, pin: undefined, accepted: true },
+    { allowed: [4217, 42431], advertised: undefined, resolved: 1, pin: undefined, accepted: false },
+    { allowed: [], advertised: undefined, resolved: 42431, pin: undefined, accepted: false },
+    { allowed: [], advertised: 42431, resolved: 42431, pin: undefined, accepted: false },
+    { allowed: [4217], advertised: undefined, resolved: 42431, pin: 42431, accepted: false },
+    { allowed: [4217, 42431], advertised: 1, resolved: 1, pin: undefined, accepted: false },
+  ])(
+    'enforces $allowed for challenge $advertised, client $resolved, and pin $pin',
+    async ({ allowed, advertised, resolved, pin, accepted }) => {
+      const getClient = vi.fn(() =>
+        createClient({
+          account,
+          chain: { ...tempoLocalnet, id: resolved },
+          transport: http('http://127.0.0.1'),
+        }),
+      )
+      const signTypedData = vi.spyOn(account, 'signTypedData')
+      const method = charge({ account, allowedChainIds: allowed, expectedChainId: pin, getClient })
+      try {
+        const result = method.createCredential({
+          challenge: createChallenge({ chainId: advertised }),
+          context: {},
+        })
+        if (accepted) {
+          expect(Credential.deserialize(await result).source).toBe(
+            `did:pkh:eip155:${resolved}:${account.address}`,
+          )
+        } else {
+          await expect(result).rejects.toThrow('Chain ID not allowed')
+          expect(signTypedData).not.toHaveBeenCalled()
+          if (advertised !== undefined || allowed.length === 0)
+            expect(getClient).not.toHaveBeenCalled()
+        }
+      } finally {
+        signTypedData.mockRestore()
+      }
+    },
+  )
 })
 
 describe('recipient allowlist', () => {
