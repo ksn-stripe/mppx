@@ -940,6 +940,7 @@ describe('Stripe session settlement recording', () => {
       expect(client.paymentIntents.create).toHaveBeenCalledExactlyOnceWith(
         expect.objectContaining({
           amount: 1,
+          metadata: expect.objectContaining({ mpp_intent: 'session' }),
           payment_method_options: {
             crypto: {
               mode: 'transaction_verification',
