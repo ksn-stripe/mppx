@@ -99,10 +99,6 @@ interface StripeMachinePayments<P extends stripe.Parameters = stripe.Parameters>
         metadata?: Record<string, string>
       } & Partial<Omit<Parameters<typeof tempoCharge>[0], 'currency' | 'recipient'>>,
     ) => TempoServer
-    /**
-     * Creates a session that automatically records whole-cent settlement deltas
-     * as Stripe PaymentIntents. `onSessionSettlement` runs after recording.
-     */
     session: (
       params: { recipient: stripe.DepositAddress<'tempo'> } & Omit<
         tempoSession.Parameters,
