@@ -268,15 +268,11 @@ export function stripe<const P extends stripe.Parameters>(parameters: P): Stripe
       ...(hostedTempoFeePayer && { feePayer: hostedTempoFeePayer }),
       ...rest,
       async onSessionSettlement(context) {
-        // Stripe verifies each transaction in whole cents. Never round a
-        // settlement up or carry its sub-cent remainder into another transaction.
-        const amount = (context.delta / 10_000n) * 10_000n
-        if (amount > 0n)
-          await tempoPaymentHandler({
-            intent: 'session',
-            receipt: { reference: context.txHash },
-            request: { amount: amount.toString() },
-          })
+        await tempoPaymentHandler({
+          intent: 'session',
+          receipt: { reference: context.txHash },
+          request: { amount: context.delta.toString() },
+        })
         await onSessionSettlement?.(context)
       },
     } as tempoSession.Parameters) as Method.AnyServer
